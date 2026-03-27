@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    
+    <title>LuxeWatch Marketplace | Premium Watches</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['"Inter"', 'sans-serif'],
+                    },
+                    colors: {
+                        gold: {
+                            400: '#2D6605',
+                            500: '#AA8C2C',
+                            600: '#806921',
+                        },
+                        dark: '#0F2400',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .view-section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.1s ease-in-out;
+        }
+        .view-section.active {
+            display: block;
+            animation: fadeIn 0.1s forwards;
+        }
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #D4AF37; border-radius: 4px; }
+
+        #cart-drawer {
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #cart-overlay {
+            transition: opacity 0.1s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col antialiased overflow-x-hidden">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-dark text-white sticky top-0 z-40 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="app.navigate('home')">
+                    <i data-lucide="watch" class="h-8 w-8 text-gold-400 mr-2"></i>
+                    <span class="font-serif text-2xl font-bold tracking-wider text-white">Luxe<span class="text-gold-400">Watch</span></span>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#" onclick="app.navigate('home')" class="text-gray-300 hover:text-gold-400 transition font-medium">Marketplace</a>
+                    
+                    <div id="auth-nav-links" class="flex items-center space-x-4 ml-6 border-l border-gray-700 pl-6"></div>
+
+                    <button onclick="app.toggleCart(true)" class="relative text-gray-300 hover:text-gold-400 transition p-2">
+                        <i data-lucide="shopping-bag" class="h-6 w-6"></i>
+                        <span id="cart-count" class="absolute top-0 right-0 bg-gold-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1 scale-0 transition-transform">0</span>
+                    </button>
+                </div>
+
+                <div class="md:hidden flex items-center">
+                    <button onclick="app.toggleCart(true)" class="relative text-gray-300 hover:text-gold-400 transition p-2 mr-4">
+                        <i data-lucide="shopping-bag" class="h-6 w-6"></i>
+                        <span id="mobile-cart-count" class="absolute top-0 right-0 bg-gold-500 text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center transform translate-x-1 -translate-y-1 scale-0 transition-transform">0</span>
+                    </button>
+                    <button onclick="app.toggleMobileMenu()" class="text-gray-300 hover:text-white p-2">
+                        <i data-lucide="menu" class="h-6 w-6"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-dark border-t border-gray-800 px-4 pt-2 pb-4 space-y-1">
+            <a href="#" onclick="app.navigate('home'); app.toggleMobileMenu()" class="block px-3 py-2 text-base font-medium text-gray-300 hover:text-gold-400 rounded-md">Marketplace</a>
+            <div id="mobile-auth-links" class="border-t border-gray-700 pt-2 mt-2"></div>
+        </div>
+    </nav>
+
+
+    <!-- Cart Drawer Overlay -->
+    <div id="cart-overlay" class="fixed inset-0 bg-black/60 z-[60] opacity-0 pointer-events-none" onclick="app.toggleCart(false)"></div>
+    
+
+
+
+
+    <!-- Cart Drawer -->
+    <div id="cart-drawer" class="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[70] translate-x-full shadow-2xl flex flex-col">
+        <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-dark text-white">
+            <h2 class="text-xl font-serif font-bold flex items-center">
+                <i data-lucide="shopping-cart" class="mr-3 h-5 w-5 text-gold-400"></i>
+                Your Selection
+            </h2>
+            <button onclick="app.toggleCart(false)" class="text-gray-400 hover:text-white transition">
+                <i data-lucide="x" class="h-6 w-6"></i>
+            </button>
+        </div>
+
+        <div id="cart-items-list" class="flex-grow overflow-y-auto p-6 space-y-6"></div>
+
+        <div id="cart-footer" class="p-6 border-t border-gray-100 bg-gray-50">
+            <div class="flex justify-between items-center mb-6">
+                <span class="text-gray-600 font-medium">Subtotal</span>
+                <span id="cart-total" class="text-2xl font-bold text-dark">₱0.00</span>
+            </div>
+            <button onclick="app.goToShipping()" class="w-full bg-gold-500 hover:bg-gold-600 text-white py-4 rounded-sm font-bold uppercase tracking-widest transition-all shadow-lg shadow-gold-500/20 active:scale-[0.98]">
+                Proceed to Checkout
+            </button>
+        </div>
+    </div>
+
+    <main class="flex-grow flex flex-col relative">
+      
+
+
+
+
+
+  <!-- HOME VIEW -->
+        <section id="view-home" class="view-section active flex-grow flex flex-col">
+            <div class="relative bg-dark text-white overflow-hidden">
+                <div class="absolute inset-0">
+                    <img src="https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=2080&auto=format&fit=crop" alt="Luxury Watch" class="w-full h-full object-cover opacity-40">
+                </div>
+                <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight mb-4">
+                        LuxeWatch <br><span class="text-gold-400 italic">Marketplace</span>
+                    </h1>
+                    
+                    <button onclick="document.getElementById('products-grid').scrollIntoView({behavior: 'smooth'})" class="bg-gold-500 hover:bg-gold-600 text-white px-8 py-3 rounded-sm font-medium transition duration-300 uppercase tracking-wide text-sm shadow-lg shadow-gold-500/30">
+                        Explore Collection
+                    </button>
+                </div>
+            </div>
+
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 w-full flex-grow">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-serif font-bold text-gray-900 mb-4">Featured Timepieces</h2>
+                    <div class="w-16 h-1 bg-gold-400 mx-auto"></div>
+                </div>
+                <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"></div>
+            </div>
+        </section>
+
+        <!-- LOGIN VIEW -->
+        <section id="view-login" class="view-section flex-grow bg-gray-100 flex items-center justify-center py-12 px-4">
+            <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-xl border border-gray-100">
+                <div class="text-center">
+                    <div class="inline-block bg-dark p-3 rounded-full mb-4">
+                        <i data-lucide="user" class="h-8 w-8 text-gold-400"></i>
+                    </div>
+                  
+                    
+                    </div>
+                </div>
+                <form class="mt-8 space-y-6" onsubmit="app.handleLogin(event)">
+                    <input id="login-email" type="email" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Email" value="ralfvalderrama9@gmail.com">
+                    <input id="login-password" type="password" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Password" value="ralfvincent1125">
+                    <button type="submit" class="w-full py-3 px-4 bg-dark text-white rounded-md hover:bg-gray-800 transition">Sign In</button>
+                </form>
+                <p class="text-center text-sm text-gray-600">Don't have an account? <button onclick="app.navigate('register')" class="text-gold-600 font-medium">Register</button></p>
+            </div>
+        </section>
+
+        <!-- REGISTER VIEW -->
+        <section id="view-register" class="view-section flex-grow bg-gray-100 flex items-center justify-center py-12 px-4">
+            <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-xl border border-gray-100">
+                <div class="text-center">
+                    <div class="inline-block bg-dark p-3 rounded-full mb-4">
+                        <i data-lucide="user-plus" class="h-8 w-8 text-gold-400"></i>
+                    </div>
+                    <h2 class="text-3xl font-serif font-extrabold text-gray-900">Join Marketplace</h2>
+                </div>
+                <form class="mt-8 space-y-4" onsubmit="app.handleRegister(event)">
+                    <input id="reg-name" type="text" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Full Name">
+                    <input id="reg-email" type="email" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Email">
+                    <input id="reg-password" type="password" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Password">
+                    <input id="reg-confirm" type="password" required class="w-full px-3 py-3 border border-gray-300 rounded-md" placeholder="Confirm Password">
+                    <button type="submit" class="w-full py-3 px-4 bg-gold-500 text-white rounded-md hover:bg-gold-600 transition">Register Now</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- SHIPPING / CHECKOUT VIEW -->
+        <section id="view-shipping" class="view-section flex-grow py-12 px-4 bg-gray-50">
+            <div class="max-w-5xl mx-auto">
+                <div class="flex items-center space-x-2 text-sm text-gray-400 mb-8">
+                    <span class="hover:text-dark cursor-pointer" onclick="app.navigate('home')">Shop</span>
+                    <i data-lucide="chevron-right" class="h-3 w-3"></i>
+                    <span class="text-dark font-bold">Shipping Details</span>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    <!-- Shipping Form -->
+                    <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100">
+                        <h2 class="text-2xl font-serif font-bold text-dark mb-6 flex items-center">
+                            <i data-lucide="truck" class="mr-3 text-gold-400"></i>
+                            Delivery Address
+                        </h2>
+                        <form id="shipping-form" onsubmit="app.handleOrder(event)" class="space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">Recipient Name</label>
+                                    <input id="ship-name" type="text" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md focus:ring-1 focus:ring-gold-400 outline-none" placeholder="Juan Dela Cruz">
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">Contact Number</label>
+                                    <input id="ship-phone" type="tel" maxlength="11" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md focus:ring-1 focus:ring-gold-400 outline-none" placeholder="0917-000-0000">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">Region / Province</label>
+                                <select id="ship-region" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md focus:ring-1 focus:ring-gold-400 outline-none">
+                                    <option value="">Select Region</option>
+                                    <option>Metro Manila</option>
+                                    <option>Luzon</option>
+                                    <option>Visayas</option>
+                                    <option>Mindanao</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">City / Municipality</label>
+                                <input id="ship-city" type="text" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md focus:ring-1 focus:ring-gold-400 outline-none" placeholder="Makati City">
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold uppercase text-gray-400 mb-1 block">Street / Unit / Bldg</label>
+                                <textarea id="ship-street" required rows="3" class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-md focus:ring-1 focus:ring-gold-400 outline-none resize-none" placeholder="123 Ayala Avenue, Brgy. Bel-Air"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-dark text-white py-4 rounded-sm font-bold uppercase tracking-widest hover:bg-gray-800 transition shadow-lg mt-6">
+                                Confirm & Place Order
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div>
+                        <div class="bg-gray-100 p-8 rounded-xl border border-gray-200">
+                            <h3 class="text-lg font-serif font-bold text-dark mb-6">Order Summary</h3>
+                            <div id="shipping-summary-list" class="space-y-4 max-h-96 overflow-y-auto pr-2">
+                                <!-- Summary items injected here -->
+                            </div>
+                            <div class="mt-8 pt-6 border-t border-gray-200">
+                                <div class="flex justify-between text-gray-500 mb-2">
+                                    <span>Shipping</span>
+                                    <span class="font-medium text-green-600">FREE</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xl font-bold text-dark">
+                                    <span>Total Amount</span>
+                                    <span id="shipping-total">₱0.00</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6 flex items-center p-4 bg-gold-50 border border-gold-100 rounded-lg text-gold-800 text-sm">
+                            
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-dark text-white py-12">
+        
+        
+    </footer>
+
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[100] flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        const products = [
+           { id: 1, name: "Apex", price: 13499, image: "https://www.chronopassion.com/files/2025/11/hmoser_6805-0410_streamliner_tourbillon_rg_pierre_gasly_edition__detail_b-940x940.jpg", tag: "Best Seller"  },
+
+            { id: 2, name: "Azure", price: 13999, image: "https://i.pinimg.com/736x/60/ab/14/60ab1436915e6c287e48333afeec5621.jpg", tag: "Limited Edition" },
+
+            { id: 3, name: "Korser", price: 25000, image: "https://media.istockphoto.com/id/483718275/photo/golden-wristwatch-on-black.jpg?s=612x612&w=0&k=20&c=lci8o7zdWVyXeh813pC60Kbjrxtm9DiN2f1f9e6tcpA=" },
+
+            { id: 4, name: "Zylos", price: 18999, image: "https://dam.mediacorp.sg/image/upload/s--Zn1UdRqX--/c_crop,h_1125,w_1500,x_0,y_1/c_fill,g_auto,h_523,w_693/f_auto,q_auto/v1/mediacorp/cna/image/2024/02/06/hmoser_6500-1200_streamliner_small_seconds_st_aquablue_lifestyle_watches_without_logos_quiet_luxury.jpg?itok=cdLc9fuh" },
+
+            { id: 5, name: "Omnis", price: 21499, image: "https://media.istockphoto.com/id/153408790/photo/elegant-wristwatch.jpg?s=612x612&w=0&k=20&c=G6v-kNw5UGS4_PuTf0GA_RHzTzO6tJ0GKcbw8LeC2AY=" },
+
+            { id: 6, name: "Eon", price: 16000, image: "https://media.istockphoto.com/id/1193931855/photo/luxury-watch-isolated-on-white-background-with-clipping-path-for-artwork-or-design-white.jpg?s=612x612&w=0&k=20&c=vw1ceQ7rq04cCkOvzqaywVwP34fLs0QvdI0pp8-elkM=" },
+
+            { id: 7, name: "Vexo", price: 24000	, image: "https://media.istockphoto.com/id/97472180/photo/wristwatch.jpg?s=612x612&w=0&k=20&c=7GBDRS8IMLNfvdDI44dlQsvaoSNuLkb0c0NfrIkbBh8=" },
+
+            { id: 8, name: "Lyra", price: 19999, image: "https://media.istockphoto.com/id/1180453576/photo/luxury-watch-isolated-on-white-background-with-clipping-path-gold-watch-women-watch-female.jpg?s=612x612&w=0&k=20&c=7156SpeDaeLHq7506ULnp6ZQrzbuoaHvOfnK6RT4L2A=" },
+
+{ id: 9, name: "Aether", price: 16000, image: "https://images.unsplash.com/photo-1523170335258-f5ed11844a49?q=80&w=2080&auto=format&fit=crop" },
+        ];
+
+        let users = [{ name: "test User", email: "ralfvalderrama9@gmail.com", password: "ralfvincent1125" }];
+        
+        const appState = {
+            currentUser: null,
+            cart: [],
+            currentView: 'home',
+            isCartOpen: false
+        };
+
+        const app = {
+            init() {
+                lucide.createIcons();
+                this.renderProducts();
+                this.updateAuthUI();
+                this.navigate('home');
+            },
+
+            navigate(viewId) {
+                document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+                const target = document.getElementById(`view-${viewId}`);
+                if (target) {
+                    target.classList.add('active');
+                    appState.currentView = viewId;
+                    window.scrollTo(0, 0);
+                    if (viewId === 'shipping') this.renderShippingSummary();
+                }
+            },
+
+            toggleMobileMenu() {
+                document.getElementById('mobile-menu').classList.toggle('hidden');
+            },
+
+            toggleCart(isOpen) {
+                if (isOpen && !appState.currentUser) {
+                    
+                    this.navigate('login');
+                    return;
+                }
+                const drawer = document.getElementById('cart-drawer');
+                const overlay = document.getElementById('cart-overlay');
+                appState.isCartOpen = isOpen;
+                
+                if (isOpen) {
+                    drawer.classList.remove('translate-x-full');
+                    overlay.classList.remove('pointer-events-none');
+                    overlay.classList.add('opacity-100');
+                    document.body.classList.add('overflow-hidden');
+                    this.renderCartItems();
+                } else {
+                    drawer.classList.add('translate-x-full');
+                    overlay.classList.add('pointer-events-none');
+                    overlay.classList.remove('opacity-100');
+                    document.body.classList.remove('overflow-hidden');
+                }
+            },
+
+            updateAuthUI() {
+                const desktopNav = document.getElementById('auth-nav-links');
+                const mobileNav = document.getElementById('mobile-auth-links');
+                const links = appState.currentUser 
+                    ? `<span class="text-gray-400 text-sm">Hi, ${appState.currentUser.name.split(' ')[0]}</span><button onclick="app.logout()" class="text-gray-300 hover:text-white border border-gray-600 px-3 py-1 rounded-md text-sm">Logout</button>`
+                    : `<button onclick="app.navigate('login')" class="text-gray-300 text-sm">Sign In</button><button onclick="app.navigate('register')" class="bg-gold-500 px-4 py-2 rounded-sm text-sm font-bold">Register</button>`;
+                
+                desktopNav.innerHTML = links;
+                mobileNav.innerHTML = `<div class="p-3">${links}</div>`;
+                lucide.createIcons();
+            },
+
+            handleLogin(e) {
+                e.preventDefault();
+                const user = users.find(u => u.email === document.getElementById('login-email').value && u.password === document.getElementById('login-password').value);
+                if (user) {
+                    appState.currentUser = user;
+                    this.updateAuthUI();
+                    
+                    this.navigate('home');
+                } else {
+                    this.showToast('Invalid credentials', 'error');
+                }
+            },
+
+            handleRegister(e) {
+                e.preventDefault();
+                const name = document.getElementById('reg-name').value;
+                const email = document.getElementById('reg-email').value;
+                const password = document.getElementById('reg-password').value;
+                if (users.find(u => u.email === email)) return this.showToast('Email taken', 'error');
+                
+                const newUser = { name, email, password };
+                users.push(newUser);
+                appState.currentUser = newUser;
+                this.updateAuthUI();
+                this.showToast('Welcome to LuxeWatch!', 'success');
+                this.navigate('home');
+            },
+
+            logout() {
+                appState.currentUser = null;
+                appState.cart = [];
+                this.updateCartBadge();
+                this.updateAuthUI();
+                this.navigate('home');
+            },
+
+            renderProducts() {
+                const grid = document.getElementById('products-grid');
+                grid.innerHTML = products.map(p => `
+                    <div class="bg-white rounded-lg border border-gray-100 overflow-hidden shadow-sm hover:shadow-lg transition-all group">
+                        <div class="relative h-64 overflow-hidden">
+                            <img src="${p.image}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                                <button onclick="app.addToCart(${p.id})" class="bg-white text-dark p-3 rounded-full hover:bg-gold-500 hover:text-white transition transform translate-y-4 group-hover:translate-y-0 shadow-xl">
+                                    <i data-lucide="plus" class="h-6 w-6"></i>
+                                </button>
+                            </div>
+                            ${p.tag ? `<span class="absolute top-3 left-3 bg-dark text-white text-[10px] px-2 py-1 font-bold uppercase">${p.tag}</span>` : ''}
+                        </div>
+                        <div class="p-5 text-center">
+                            <h3 class="font-serif font-bold text-lg">${p.name}</h3>
+                            <p class="text-gold-600 font-bold mt-2">₱${p.price.toLocaleString()}</p>
+                        </div>
+                    </div>
+                `).join('');
+                lucide.createIcons();
+            },
+
+            addToCart(productId) {
+                if (!appState.currentUser) {
+                    
+                    return this.navigate('login');
+                }
+                const product = products.find(p => p.id === productId);
+                appState.cart.push({ ...product, cartId: Date.now() });
+                this.updateCartBadge();
+                
+            },
+
+            updateCartBadge() {
+                const count = appState.cart.length;
+                ['cart-count', 'mobile-cart-count'].forEach(id => {
+                    const el = document.getElementById(id);
+                    el.textContent = count;
+                    el.classList.toggle('scale-0', count === 0);
+                    el.classList.toggle('scale-100', count > 0);
+                });
+                this.renderCartItems();
+            },
+
+            renderCartItems() {
+                const list = document.getElementById('cart-items-list');
+                const totalEl = document.getElementById('cart-total');
+                if (appState.cart.length === 0) {
+                    list.innerHTML = `<div class="py-20 text-center text-gray-400 italic">Cart is empty</div>`;
+                } else {
+                    list.innerHTML = appState.cart.map((item, index) => `
+                        <div class="flex items-center space-x-4">
+                            <img src="${item.image}" class="h-16 w-16 object-cover rounded">
+                            <div class="flex-grow"><h4 class="text-sm font-bold">${item.name}</h4><p class="text-xs text-gold-600">₱${item.price.toLocaleString()}</p></div>
+                            <button onclick="app.removeFromCart(${index})" class="text-gray-300 hover:text-red-500"><i data-lucide="trash-2" class="h-4 w-4"></i></button>
+                        </div>
+                    `).join('');
+                }
+                totalEl.textContent = `₱${appState.cart.reduce((s, i) => s + i.price, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+                lucide.createIcons();
+            },
+
+            removeFromCart(index) {
+                appState.cart.splice(index, 1);
+                this.updateCartBadge();
+            },
+
+            goToShipping() {
+                if (appState.cart.length === 0) return this.showToast('Cart is empty', 'error');
+                this.toggleCart(false);
+                this.navigate('shipping');
+                // Pre-fill name if user exists
+                document.getElementById('ship-name').value = appState.currentUser.name;
+            },
+
+            renderShippingSummary() {
+                const list = document.getElementById('shipping-summary-list');
+                const totalEl = document.getElementById('shipping-total');
+                list.innerHTML = appState.cart.map(item => `
+                    <div class="flex justify-between items-center text-sm">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-gray-200 rounded overflow-hidden mr-3">
+                                <img src="${item.image}" class="w-full h-full object-cover">
+                            </div>
+                            <span class="text-gray-600">${item.name}</span>
+                        </div>
+                        <span class="font-bold">₱${item.price.toLocaleString()}</span>
+                    </div>
+                `).join('');
+                totalEl.textContent = `₱${appState.cart.reduce((s, i) => s + i.price, 0).toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            },
+
+            handleOrder(e) {
+                e.preventDefault();
+                const address = `${document.getElementById('ship-street').value}, ${document.getElementById('ship-city').value}, ${document.getElementById('ship-region').value}`;
+                
+                
+                setTimeout(() => {
+                    const total = appState.cart.reduce((s, i) => s + i.price, 0).toLocaleString();
+                                       
+                    // Simple custom success UI instead of standard alert
+                    document.body.insertAdjacentHTML('beforeend', `
+                        <div id="success-modal" class="fixed inset-0 z-[100] bg-dark/90 flex items-center justify-center p-4">
+                            <div class="bg-white max-w-md w-full p-8 rounded-2xl text-center shadow-2xl">
+                                <div class="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <i data-lucide="check" class="h-10 w-10"></i>
+                                </div>
+                                <h2 class="text-2xl font-serif font-bold mb-2">Order Confirmed!</h2>
+                                <p class="text-gray-500 mb-6">Your order will be delivered to:</p>
+                                <p class="bg-gray-50 p-3 rounded text-sm text-gray-700 italic border border-gray-100 mb-6">${address}</p>
+                                <p class="text-lg font-bold text-dark mb-8">Prepare the payment total: ₱${total}</p>
+                                <button onclick="document.getElementById('success-modal').remove(); app.navigate('home')" class="w-full bg-dark text-white py-3 rounded-lg font-bold">Back to Marketplace</button>
+                            </div>
+                        </div>
+                    `);
+                    lucide.createIcons();
+                    
+                    appState.cart = [];
+                    this.updateCartBadge();
+                }, 2000);
+            },
+
+            showToast(msg, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                const colors = { success: 'bg-green-600', error: 'bg-red-600', info: 'bg-dark' };
+                toast.className = `${colors[type] || 'bg-dark'} text-white px-5 py-3 rounded shadow-2xl transform transition-all duration-300 translate-y-10 opacity-0`;
+                toast.innerHTML = `<span class="text-sm font-medium">${msg}</span>`;
+                container.appendChild(toast);
+                setTimeout(() => toast.classList.remove('translate-y-10', 'opacity-0'), 10);
+                setTimeout(() => {
+                    toast.classList.add('translate-y-10', 'opacity-0');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        window.onload = () => app.init();
+    </script>
+
+</body>
+</html>
